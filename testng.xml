@@ -4,8 +4,8 @@
     <test name="OrangeHRM-Test">
         <classes>
             <class name="com.sf.DummyTests.DummyTest"> </class>
-            <class name="com.sf.DummyTests.DummyTest2">
-            </class>
+            <class name="com.sf.DummyTests.DummyTest2"></class>
+            <class name="com.sf.DummyTests.LoginPageTest"></class>
         </classes>
     </test>
 </suite>

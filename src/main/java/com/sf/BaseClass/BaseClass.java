@@ -85,5 +85,7 @@ public class BaseClass {
         this.driver = driver;
     }
 
-
+    public static Properties getProp() {
+        return prop;
+    }
 }

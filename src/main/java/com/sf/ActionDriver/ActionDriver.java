@@ -1,5 +1,6 @@
 package com.sf.ActionDriver;
 
+import com.sf.BaseClass.BaseClass;
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
 import org.openqa.selenium.WebDriver;
@@ -18,7 +19,8 @@ public class ActionDriver {
 
     public ActionDriver(WebDriver driver) {
         this.driver = driver;
-        this.wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+        int explictWait= Integer.parseInt(BaseClass.getProp().getProperty("explicitWait"));
+        this.wait = new WebDriverWait(driver,Duration.ofSeconds( explictWait));
     }
 
     public void waitForElementToBeClickable(By by) {
@@ -66,18 +68,21 @@ public class ActionDriver {
         }
     }
 
-    public void compareText(By by, String text) {
+    public boolean compareText(By by, String text) {
         try {
             waitForElementToBeVisible(by);
             driver.findElement(by).clear();
             String actualText = driver.findElement(by).getText();
             if (text.equals(actualText)) {
                 System.out.println("The text is equal to the actual text" + actualText);
+                return true;
             } else {
                 System.out.println("The text is not equal to the actual text" + actualText);
+                return false;
             }
         } catch (Exception e) {
             System.out.println("Unable to compare text" + e.getMessage());
+            return false;
         }
     }
 
@@ -120,7 +125,6 @@ public class ActionDriver {
         } catch (Exception e) {
             System.out.println("Unable to load page" + e.getMessage());
         }
-
     }
 
 }
