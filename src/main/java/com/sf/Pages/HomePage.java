@@ -1,6 +1,7 @@
 package com.sf.Pages;
 
 import com.sf.ActionDriver.ActionDriver;
+import com.sf.BaseClass.BaseClass;
 import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 
@@ -13,7 +14,7 @@ public class HomePage {
     private By OrangeHrmLogo=By.xpath("//div[@class='oxd-brand-banner']//img");
 
     public HomePage(WebDriver driver) {
-        this.actionDriver = new ActionDriver(driver);
+        this.actionDriver = BaseClass.getActionDriver();;
     }
 
     public boolean isAdminTabVisible(){

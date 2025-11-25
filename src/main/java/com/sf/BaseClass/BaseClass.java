@@ -1,5 +1,6 @@
 package com.sf.BaseClass;
 
+import com.sf.ActionDriver.ActionDriver;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.edge.EdgeDriver;
@@ -20,6 +21,8 @@ public class BaseClass {
 
     protected  static Properties prop;
     protected WebDriver driver;
+    private  static ActionDriver actionDriver;
+
     @BeforeSuite
     public void loadConfig() throws IOException {
         prop = new Properties();
@@ -31,6 +34,10 @@ public class BaseClass {
         launchBrowser();
         configureBrowser();
         staticWait(2);
+        if(actionDriver == null) {
+            actionDriver=new ActionDriver(driver);
+            System.out.println("Action driver instance is created");
+        }
     }
     private void launchBrowser() throws IllegalAccessException {
         String browser = prop.getProperty("browser");
@@ -60,8 +67,6 @@ public class BaseClass {
         }
     }
 
-
-
     @AfterMethod
     public void tearDown() {
         try {
@@ -72,12 +77,19 @@ public class BaseClass {
         catch (Exception e) {
             System.out.println("FAILED TO TEAR DOWN: " + e.getMessage());
         }
+        System.out.println("Driver Closed");
+        driver = null;
+        actionDriver = null;
     }
     public void staticWait(int seconds) {
         LockSupport.parkNanos(TimeUnit.SECONDS.toNanos(seconds));
     }
 
     public WebDriver getDriver() {
+        if (driver == null) {
+            System.out.println("Driver is not initialized");
+            throw new IllegalStateException("Driver is not initialized");
+        }
         return driver;
     }
 
@@ -87,5 +99,12 @@ public class BaseClass {
 
     public static Properties getProp() {
         return prop;
+    }
+    public static ActionDriver getActionDriver() {
+        if (actionDriver == null) {
+            System.out.println("Driver is not initialized");
+            throw new IllegalStateException("Driver is not initialized");
+        }
+        return actionDriver;
     }
 }

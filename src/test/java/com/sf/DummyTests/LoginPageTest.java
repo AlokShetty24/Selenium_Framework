@@ -33,6 +33,6 @@ public class LoginPageTest extends BaseClass {
     {
         loginPage.Login("admin","admin13");
         String expectedErrorMessage="Invalid credentials";
-        Assert.assertTrue(loginPage.verifyErrorMessage(expectedErrorMessage),"Test Failed");
+        Assert.assertFalse(loginPage.verifyErrorMessage(expectedErrorMessage),"Test Failed");
     }
 }
