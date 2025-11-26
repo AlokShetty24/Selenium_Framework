@@ -45,7 +45,8 @@ public class ActionDriver {
 
     public void click(By by) {
         try {
-            logger.info("Clicking element: {}", by);
+            String elementDescription = getElementDescription(by);
+            logger.info("Clicking element: {}", elementDescription);
             waitForElementToBeClickable(by);
             driver.findElement(by).click();
             logger.debug("Click action completed for: {}", by);
@@ -153,4 +154,54 @@ public class ActionDriver {
         }
     }
 
+// Method to get element Description
+
+    public String getElementDescription(By locator) {
+        if(driver==null) {
+            logger.error("Driver is null");
+            return "Driver is null";
+        }
+        if(locator==null) {
+            logger.error("Locator is null");
+            return "Locator is null";
+        }
+        WebElement element = driver.findElement(locator);
+        String name=element.getDomAttribute("name");
+        String id=element.getDomAttribute("id");
+        String classname=element.getDomAttribute("class");
+        String text=element.getText();
+        String placeholder=element.getAttribute("placeholder");
+        String value=element.getAttribute("value");
+
+        if(isNotEmpty(name)) {
+            return "Element name: " + name;
+        }
+        else if(isNotEmpty(id)) {
+            return "Element id: " + id;
+        }
+        else if(isNotEmpty(classname)) {
+            return "Element classname: " + classname;
+        }
+        else if(isNotEmpty(text)) {
+            return "Element text: " + truncates(text,50);
+        }
+        else if(isNotEmpty(value)) {
+            return "Element value: " + value;
+        }
+        else if(isNotEmpty(placeholder)) {
+            return "Element placeholder: " + placeholder;
+        }
+        return null;
+    }
+
+    private boolean isNotEmpty(String value) {
+        return value!=null && !value.isEmpty();
+        }
+
+    private String truncates(String text, int length) {
+        if (text == null || text.length() <= length) {
+            return text;
+        }
+        return text.substring(0, length)+"...";
+    }
 }
