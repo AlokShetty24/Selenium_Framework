@@ -1,11 +1,13 @@
 package com.sf.ActionDriver;
 
 import com.sf.BaseClass.BaseClass;
+import com.sf.Utilities.ExtentManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.*;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.WebDriverWait;
 
+import java.io.IOException;
 import java.time.Duration;
 
 public class ActionDriver {
@@ -29,6 +31,7 @@ public class ActionDriver {
             wait.until(ExpectedConditions.elementToBeClickable(by));
         } catch (Exception e) {
             logger.error("Element is NOT clickable: {} | Exception: {}", by, e.getMessage());
+            captureFailure("Element not clickable: " + by);
         }
     }
 
@@ -38,6 +41,7 @@ public class ActionDriver {
             wait.until(ExpectedConditions.visibilityOfElementLocated(by));
         } catch (Exception e) {
             logger.error("Element is NOT visible: {} | Exception: {}", by, e.getMessage());
+            captureFailure("Element not visible: " + by);
         }
     }
 
@@ -47,24 +51,38 @@ public class ActionDriver {
         try {
             String elementDescription = getElementDescription(by);
             logger.info("Clicking element: {}", elementDescription);
+
             waitForElementToBeClickable(by);
             driver.findElement(by).click();
+
+            ExtentManager.logStep("Clicked element: " + elementDescription);
             logger.debug("Click action completed for: {}", by);
+
         } catch (Exception e) {
             logger.error("Unable to click element: {} | Exception: {}", by, e.getMessage());
+            captureFailure("Failed to click element: " + by);
         }
     }
 
     public void enterText(By by, String text) {
         try {
             logger.info("Entering text '{}' into element: {}", text, by);
+
             waitForElementToBeVisible(by);
+
             WebElement element = driver.findElement(by);
             element.clear();
             element.sendKeys(text);
+
+            ExtentManager.logStepWithScreenshot(driver,
+                    "Entered text: " + text,
+                    "After entering text");
+
             logger.debug("Text entered successfully into: {}", by);
+
         } catch (Exception e) {
             logger.error("Unable to enter text '{}' into element: {} | Exception: {}", text, by, e.getMessage());
+            captureFailure("Failed to enter text in element: " + by);
         }
     }
 
@@ -73,10 +91,12 @@ public class ActionDriver {
             logger.info("Fetching text from element: {}", by);
             waitForElementToBeVisible(by);
             String text = driver.findElement(by).getText();
-            logger.debug("Extracted text from {}: {}", by, text);
+            logger.debug("Extracted text: {}", text);
             return text;
+
         } catch (Exception e) {
             logger.error("Unable to get text from element: {} | Exception: {}", by, e.getMessage());
+            captureFailure("Failed to get text from: " + by);
             return "";
         }
     }
@@ -84,19 +104,23 @@ public class ActionDriver {
     public boolean compareText(By by, String expectedText) {
         try {
             logger.info("Comparing text for element: {}", by);
-            waitForElementToBeVisible(by);
 
+            waitForElementToBeVisible(by);
             String actualText = driver.findElement(by).getText();
 
             if (expectedText.equals(actualText)) {
-                logger.info("Expected text matches actual text: '{}'", actualText);
+                ExtentManager.logStep("Text matched: " + actualText);
+                logger.info("Text matches.");
                 return true;
             } else {
                 logger.warn("Text mismatch! Expected: '{}', Actual: '{}'", expectedText, actualText);
+                captureFailure("Text mismatch for: " + by);
                 return false;
             }
+
         } catch (Exception e) {
             logger.error("Unable to compare text for element {} | Exception: {}", by, e.getMessage());
+            captureFailure("Failed to compare text for: " + by);
             return false;
         }
     }
@@ -107,17 +131,16 @@ public class ActionDriver {
             waitForElementToBeVisible(by);
 
             boolean displayed = driver.findElement(by).isDisplayed();
-
             if (displayed) {
-                logger.info("Element is displayed: {}", by);
+                ExtentManager.logStep("Element is displayed: " + by);
             } else {
-                logger.warn("Element is NOT displayed: {}", by);
+                captureFailure("Element is NOT displayed: " + by);
             }
-
             return displayed;
 
         } catch (Exception e) {
-            logger.error("Unable to verify display status for element {} | Exception: {}", by, e.getMessage());
+            logger.error("Display check failed for {} | Exception: {}", by, e.getMessage());
+            captureFailure("Failed to verify display: " + by);
             return false;
         }
     }
@@ -125,22 +148,24 @@ public class ActionDriver {
     public void ScrollToElement(By by) {
         try {
             logger.info("Scrolling to element: {}", by);
-
             JavascriptExecutor js = (JavascriptExecutor) driver;
             WebElement element = driver.findElement(by);
 
             js.executeScript("arguments[0].scrollIntoView(true);", element);
 
-            logger.debug("Scroll to element completed: {}", by);
+            ExtentManager.logStep("Scrolled to element: " + by);
+            logger.debug("Scroll complete.");
+
         } catch (Exception e) {
             logger.error("Unable to scroll to element {} | Exception: {}", by, e.getMessage());
+            captureFailure("Failed to scroll to: " + by);
         }
     }
 
     // -------------------- PAGE LOAD WAIT --------------------
 
     public void waitForPageLoad(int timeOutSec) {
-        logger.info("Waiting for page to load completely (timeout: {} seconds)", timeOutSec);
+        logger.info("Waiting for page to load (timeout {} seconds)", timeOutSec);
 
         try {
             wait.withTimeout(Duration.ofSeconds(timeOutSec)).until(
@@ -148,60 +173,56 @@ public class ActionDriver {
                             .executeScript("return document.readyState")
                             .equals("complete")
             );
-            logger.info("Page load completed successfully.");
+
+            ExtentManager.logStep("Page loaded successfully");
+
         } catch (Exception e) {
-            logger.error("Page did not load successfully within {} seconds | Exception: {}", timeOutSec, e.getMessage());
+            logger.error("Page load failed within {} seconds | Exception: {}", timeOutSec, e.getMessage());
+            captureFailure("Page load timeout");
         }
     }
 
-// Method to get element Description
+    // -------------------- DESCRIPTION METHOD --------------------
 
     public String getElementDescription(By locator) {
-        if(driver==null) {
-            logger.error("Driver is null");
-            return "Driver is null";
-        }
-        if(locator==null) {
-            logger.error("Locator is null");
-            return "Locator is null";
-        }
-        WebElement element = driver.findElement(locator);
-        String name=element.getDomAttribute("name");
-        String id=element.getDomAttribute("id");
-        String classname=element.getDomAttribute("class");
-        String text=element.getText();
-        String placeholder=element.getAttribute("placeholder");
-        String value=element.getAttribute("value");
+        try {
+            WebElement element = driver.findElement(locator);
 
-        if(isNotEmpty(name)) {
-            return "Element name: " + name;
+            String name = element.getDomAttribute("name");
+            String id = element.getDomAttribute("id");
+            String classname = element.getDomAttribute("class");
+            String text = element.getText();
+            String placeholder = element.getAttribute("placeholder");
+            String value = element.getAttribute("value");
+
+            if (isNotEmpty(name)) return "name=" + name;
+            if (isNotEmpty(id)) return "id=" + id;
+            if (isNotEmpty(classname)) return "class=" + classname;
+            if (isNotEmpty(text)) return "text=" + truncates(text, 50);
+            if (isNotEmpty(value)) return "value=" + value;
+            if (isNotEmpty(placeholder)) return "placeholder=" + placeholder;
+
+        } catch (Exception e) {
+            logger.error("Failed to extract element description: {}", e.getMessage());
         }
-        else if(isNotEmpty(id)) {
-            return "Element id: " + id;
-        }
-        else if(isNotEmpty(classname)) {
-            return "Element classname: " + classname;
-        }
-        else if(isNotEmpty(text)) {
-            return "Element text: " + truncates(text,50);
-        }
-        else if(isNotEmpty(value)) {
-            return "Element value: " + value;
-        }
-        else if(isNotEmpty(placeholder)) {
-            return "Element placeholder: " + placeholder;
-        }
-        return null;
+        return "Unknown Element";
     }
 
     private boolean isNotEmpty(String value) {
-        return value!=null && !value.isEmpty();
-        }
+        return value != null && !value.isEmpty();
+    }
 
     private String truncates(String text, int length) {
-        if (text == null || text.length() <= length) {
-            return text;
+        return text.length() <= length ? text : text.substring(0, length) + "...";
+    }
+
+    // -------------------- COMMON FAILURE HANDLER --------------------
+
+    private void captureFailure(String message) {
+        try {
+            ExtentManager.logStepWithScreenshot(driver, message, "Failure Screenshot");
+        } catch (IOException e) {
+            logger.error("Unable to capture screenshot for failure: {}", e.getMessage());
         }
-        return text.substring(0, length)+"...";
     }
 }

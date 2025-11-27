@@ -1,6 +1,7 @@
 package com.sf.BaseClass;
 
 import com.sf.ActionDriver.ActionDriver;
+import com.sf.Utilities.ExtentManager;
 import com.sf.Utilities.LoggerManager;
 import org.apache.logging.log4j.Logger;
 import org.openqa.selenium.WebDriver;
@@ -40,11 +41,12 @@ public class BaseClass {
             logger.error("Failed to load properties file: {}", e.getMessage());
             throw e;
         }
+        ExtentManager.getReporter();
     }
 
     // -------------------- SETUP BEFORE EVERY TEST --------------------
     @BeforeMethod
-    public void setup() throws IOException, IllegalAccessException {
+    public synchronized void setup() throws IOException, IllegalAccessException {
         logger.info("Test Setup started...");
         launchBrowser();
         configureBrowser();
@@ -74,16 +76,19 @@ public class BaseClass {
                 logger.debug("Initializing ChromeDriver...");
 //                driver = new ChromeDriver();
                    driver.set(new ChromeDriver());
+                   ExtentManager.registerDriver(getDriver());
                 break;
             case "firefox":
                 logger.debug("Initializing FirefoxDriver...");
 //                driver = new FirefoxDriver();
                 driver.set(new FirefoxDriver());
+                ExtentManager.registerDriver(getDriver());
                 break;
             case "edge":
                 logger.debug("Initializing EdgeDriver...");
 //                driver = new EdgeDriver();
                 driver.set(new EdgeDriver());
+                ExtentManager.registerDriver(getDriver());
                 break;
             default:
                 logger.error("Browser not supported: {}", browser);
@@ -131,6 +136,7 @@ public class BaseClass {
 //        driver = null;
 //        actionDriver = null;
         logger.info("Driver and ActionDriver instances reset to null.");
+        ExtentManager.stopTest();
     }
 
     // -------------------- STATIC WAIT --------------------

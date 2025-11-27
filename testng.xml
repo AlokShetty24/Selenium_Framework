@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 
-<suite name="Orange-HRM" parallel="classes" thread-count="5">
+<suite name="Orange-HRM" parallel="methods" thread-count="5">
     <test name="OrangeHRM-Test" >
         <classes>
             <class name="com.sf.DummyTests.DummyTest"> </class>
