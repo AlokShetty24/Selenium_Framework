@@ -14,10 +14,13 @@ import org.testng.annotations.BeforeSuite;
 
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.time.Duration;
 import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.LockSupport;
+
+
 
 public class BaseClass {
 
@@ -46,7 +49,8 @@ public class BaseClass {
 
     // -------------------- SETUP BEFORE EVERY TEST --------------------
     @BeforeMethod
-    public synchronized void setup() throws IOException, IllegalAccessException {
+    public synchronized void setup(Method method) throws IOException, IllegalAccessException {
+        ExtentManager.startTest(method.getName());
         logger.info("Test Setup started...");
         launchBrowser();
         configureBrowser();
