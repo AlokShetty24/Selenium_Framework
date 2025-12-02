@@ -2,6 +2,7 @@ package com.sf.Utilities;
 
 import com.aventstack.extentreports.ExtentReports;
 import com.aventstack.extentreports.ExtentTest;
+import com.aventstack.extentreports.MediaEntityBuilder;
 import com.aventstack.extentreports.reporter.ExtentSparkReporter;
 import com.aventstack.extentreports.reporter.configuration.Theme;
 import org.apache.commons.io.FileUtils;
@@ -11,52 +12,43 @@ import org.openqa.selenium.WebDriver;
 
 import java.io.File;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
 import java.util.Base64;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
 
 public class ExtentManager {
 
     private static ExtentReports extent;
     private static ThreadLocal<ExtentTest> test = new ThreadLocal<>();
-    private static Map<Long, WebDriver> driverMap = new HashMap<>();
 
 
-    /**
-     * Initialize and return Extent Report instance
-     */
+    // ------------------------------------------------------
+    // INIT EXTENT REPORT
+    // ------------------------------------------------------
     public synchronized static ExtentReports getReporter() {
+
         if (extent == null) {
 
-            // Corrected path with "/" separator
-            String reportPath = System.getProperty("user.dir") +
-                    "/src/main/resources/ExtentReport/ExtentReport.html";
+            String reportPath = System.getProperty("user.dir")
+                    + "/ExtentReport/ExtentReport.html";
 
             ExtentSparkReporter spark = new ExtentSparkReporter(reportPath);
-            spark.config().setReportName("Automation Test Report");
-            spark.config().setDocumentTitle("Orange HRM Report");
+            spark.config().setDocumentTitle("Automation Test Report");
+            spark.config().setReportName("Execution Report");
             spark.config().setTheme(Theme.DARK);
 
             extent = new ExtentReports();
             extent.attachReporter(spark);
 
-            // System info
             extent.setSystemInfo("OS", System.getProperty("os.name"));
-            extent.setSystemInfo("Browser", System.getProperty("browser"));
-            extent.setSystemInfo("Device", System.getProperty("device"));
-            extent.setSystemInfo("Version", System.getProperty("version"));
-            extent.setSystemInfo("OS Type", System.getProperty("os.type"));
-            extent.setSystemInfo("User.dir", System.getProperty("user.dir"));
+            extent.setSystemInfo("Java Version", System.getProperty("java.version"));
         }
+
         return extent;
     }
 
 
-    /**
-     * Start a new test node for current thread
-     */
+    // ------------------------------------------------------
+    // START TEST NODE
+    // ------------------------------------------------------
     public synchronized static ExtentTest startTest(String testName) {
         ExtentTest extentTest = getReporter().createTest(testName);
         test.set(extentTest);
@@ -64,127 +56,105 @@ public class ExtentManager {
     }
 
 
-    /**
-     * Flush the report
-     */
-    public synchronized static void stopTest() {
-        getReporter().flush();
+    // ------------------------------------------------------
+    // UNLOAD THREADLOCAL
+    // ------------------------------------------------------
+    public synchronized static void unload() {
+        test.remove();
     }
 
 
-    /**
-     * Get current thread test
-     */
-    public static synchronized ExtentTest getTest() {
+    // ------------------------------------------------------
+    // GET CURRENT TEST
+    // ------------------------------------------------------
+    public synchronized static ExtentTest getTest() {
         return test.get();
     }
 
-
-    /**
-     * Returns test name for screenshot naming
-     */
-    public static synchronized String getTestName() {
-        ExtentTest currentTest = getTest();
-        if (currentTest != null) {
-            return currentTest.getModel().getName();
-        }
-        return "No_Test_Active";
+    private static boolean isReady() {
+        return test.get() != null;
     }
 
 
-    /**
-     * Log a simple info message
-     */
-    public synchronized static void logStep(String logMessage) {
-        getTest().info(logMessage);
+    // ------------------------------------------------------
+    // BASIC LOGGING
+    // ------------------------------------------------------
+    public synchronized static void logStep(String message) {
+        if (isReady()) test.get().info(message);
     }
 
 
-    /**
-     * Log step with screenshot attachment
-     */
-    public synchronized static void logStepWithScreenshot(WebDriver driver,
-                                                          String logMessage,
-                                                          String screenshotMessage)
-            throws IOException {
+    // ------------------------------------------------------
+    // PASS LOG WITH SCREENSHOT
+    // ------------------------------------------------------
+    public synchronized static void logPass(WebDriver driver, String message, String stepName) throws IOException {
 
-        getTest().pass(logMessage);
-        attachScreenShot(driver, screenshotMessage);
-    }
+        if (!isReady()) return;
 
+        String base64 = captureBase64(driver);
 
-    /**
-     * Log failure with screenshot
-     */
-    public synchronized static void logFailure(WebDriver driver,
-                                               String logMessage,
-                                               String screenshotMessage)
-            throws IOException {
-
-        getTest().fail(logMessage);
-        attachScreenShot(driver, screenshotMessage);
-    }
-
-
-    /**
-     * Log skipped step
-     */
-    public synchronized static void logSkip(String logMessage) {
-        getTest().skip(logMessage);
-    }
-
-
-    /**
-     * Capture screenshot → save file → return Base64 string
-     */
-    public synchronized static String takeScreenShot(WebDriver driver, String screenShotName)
-            throws IOException {
-
-        TakesScreenshot ts = (TakesScreenshot) driver;
-        File src = ts.getScreenshotAs(OutputType.FILE);
-
-        String timeStamp = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").format(new Date());
-
-        String destinationPath = System.getProperty("user.dir")
-                + "/src/main/resources/ScreenShots/"
-                + screenShotName + "_" + timeStamp + ".png";
-
-        File finalPath = new File(destinationPath);
-        FileUtils.copyFile(src, finalPath);
-
-        return convertToBase64(src);
-    }
-
-
-    /**
-     * Convert screenshot file to Base64 string
-     */
-    public synchronized static String convertToBase64(File file) throws IOException {
-        byte[] fileContent = FileUtils.readFileToByteArray(file);
-        return Base64.getEncoder().encodeToString(fileContent);
-    }
-
-
-    /**
-     * Attach base64 screenshot to report
-     */
-    public synchronized static void attachScreenShot(WebDriver driver, String message)
-            throws IOException {
-
-        String screenShotBase64 = takeScreenShot(driver, getTestName());
-        getTest().info(
+        test.get().pass(
                 message,
-                com.aventstack.extentreports.MediaEntityBuilder
-                        .createScreenCaptureFromBase64String(screenShotBase64)
-                        .build()
+                MediaEntityBuilder.createScreenCaptureFromBase64String(base64, stepName).build()
         );
     }
 
 
-    /**
-     * Register driver for current thread
-     */
-    public synchronized static void registerDriver(WebDriver driver) {
-        driverMap.put(Thread.currentThread().getId(), driver);
+    // ------------------------------------------------------
+    // FAILURE LOG WITH SCREENSHOT
+    // ------------------------------------------------------
+    public synchronized static void logFailure(WebDriver driver, String message, String stepName) throws IOException {
+
+        if (!isReady()) return;
+
+        String base64 = captureBase64(driver);
+
+        test.get().fail(
+                message,
+                MediaEntityBuilder.createScreenCaptureFromBase64String(base64, stepName).build()
+        );
+    }
+
+
+    // ------------------------------------------------------
+    // INFO + SCREENSHOT
+    // ------------------------------------------------------
+    public synchronized static void logStepWithScreenshot(WebDriver driver,
+                                                          String log,
+                                                          String screenshotText) throws IOException {
+
+        if (!isReady()) return;
+
+        test.get().info(log);
+        attachScreenshot(driver, screenshotText);
+    }
+
+
+    // ------------------------------------------------------
+    // ATTACH ONLY SCREENSHOT
+    // ------------------------------------------------------
+    public synchronized static void attachScreenshot(WebDriver driver, String message) throws IOException {
+
+        if (!isReady()) return;
+
+        String base64 = captureBase64(driver);
+
+        test.get().info(
+                message,
+                MediaEntityBuilder.createScreenCaptureFromBase64String(base64).build()
+        );
+    }
+
+
+    // ------------------------------------------------------
+    // SCREENSHOT BASE64
+    // ------------------------------------------------------
+    public synchronized static String captureBase64(WebDriver driver) throws IOException {
+
+        File src = ((TakesScreenshot) driver).getScreenshotAs(OutputType.FILE);
+
+        byte[] fileContent = FileUtils.readFileToByteArray(src);
+
+        return Base64.getEncoder().encodeToString(fileContent);
     }
 }
